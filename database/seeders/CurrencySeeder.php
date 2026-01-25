@@ -1,0 +1,45 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+
+class CurrencySeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        $currencies = [
+            ['code' => 'AUD', 'name' => 'Australian Dollar', 'symbol' => 'A$'],
+            ['code' => 'BRL', 'name' => 'Brazilian Real', 'symbol' => 'R$'],
+            ['code' => 'CAD', 'name' => 'Canadian Dollar', 'symbol' => 'C$'],
+            ['code' => 'CHF', 'name' => 'Swiss Franc', 'symbol' => 'CHF'],
+            ['code' => 'CNY', 'name' => 'Chinese Yuan', 'symbol' => '¥'],
+            ['code' => 'EUR', 'name' => 'Euro', 'symbol' => '€'],
+            ['code' => 'GBP', 'name' => 'British Pound', 'symbol' => '£'],
+            ['code' => 'HKD', 'name' => 'Hong Kong Dollar', 'symbol' => 'HK$'],
+            ['code' => 'INR', 'name' => 'Indian Rupee', 'symbol' => '₹'],
+            ['code' => 'JPY', 'name' => 'Japanese Yen', 'symbol' => '¥'],
+            ['code' => 'KRW', 'name' => 'South Korean Won', 'symbol' => '₩'],
+            ['code' => 'MXN', 'name' => 'Mexican Peso', 'symbol' => '$'],
+            ['code' => 'NOK', 'name' => 'Norwegian Krone', 'symbol' => 'kr'],
+            ['code' => 'NZD', 'name' => 'New Zealand Dollar', 'symbol' => 'NZ$'],
+            ['code' => 'RUB', 'name' => 'Russian Ruble', 'symbol' => '₽'],
+            ['code' => 'SEK', 'name' => 'Swedish Krona', 'symbol' => 'kr'],
+            ['code' => 'SGD', 'name' => 'Singapore Dollar', 'symbol' => 'S$'],
+            ['code' => 'TRY', 'name' => 'Turkish Lira', 'symbol' => '₺'],
+            ['code' => 'USD', 'name' => 'US Dollar', 'symbol' => '$'],
+            ['code' => 'ZAR', 'name' => 'South African Rand', 'symbol' => 'R'],
+        ];
+
+        foreach ($currencies as $currency) {
+            \App\Models\Currency::updateOrCreate(
+                ['code' => $currency['code']],
+                ['name' => $currency['name'], 'symbol' => $currency['symbol']]
+            );
+        }
+    }
+}
