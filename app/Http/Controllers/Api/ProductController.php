@@ -26,7 +26,8 @@ use Illuminate\Validation\Rule;
 class ProductController extends Controller
 {
     public function __construct(
-        private ProductService $productService
+        private ProductService $productService,
+        private \App\Services\ImageService $imageService
     ) {}
 
     /**
@@ -599,23 +600,8 @@ class ProductController extends Controller
             })
             ->toArray();
 
-        // Get product images - new structure: products/product_code/productcode_main, productcode_number
-        $productImages = [];
-        $productDir = "products/$productCode";
-        if (Storage::disk('public')->exists($productDir)) {
-            $files = Storage::disk('public')->files($productDir);
-            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-            foreach ($files as $file) {
-                $filename = pathinfo($file, PATHINFO_FILENAME); // Get filename without extension
-                // Check if filename matches pattern: productcode_main or productcode_number
-                if (preg_match('/^' . preg_quote($productCode, '/') . '(_main|_\\d+)?$/', $filename)) {
-                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                    if (in_array($extension, $imageExtensions)) {
-                        $productImages[] = asset("storage/{$file}");
-                    }
-                }
-            }
-        }
+        // Get product images using ImageService
+        $productImages = $this->imageService->getProductImages($productCode);
 
         // Normalize the response to remove redundant fields
         $normalizedData = [
@@ -645,43 +631,8 @@ class ProductController extends Controller
                 ];
             }) : [],
             'product_items' => $productItems->map(function ($productItem) use ($productCode, $language) {
-                // Get product item images - new structure: products/product_code/variant/isku/isku_main, isku_number
-                $productItemImages = [];
-                $productItemDir = "products/{$productCode}/variant/{$productItem->isku}";
-                if (Storage::disk('public')->exists($productItemDir)) {
-                    $files = Storage::disk('public')->files($productItemDir);
-                    $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                    foreach ($files as $file) {
-                        $filename = pathinfo($file, PATHINFO_FILENAME); // Get filename without extension
-                        // Check if filename matches pattern: isku_main or isku_number
-                        if (preg_match('/^' . preg_quote($productItem->isku, '/') . '(_main|_\\d+)?$/', $filename)) {
-                            $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                            if (in_array($extension, $imageExtensions)) {
-                                $productItemImages[] = asset("storage/{$file}");
-                            }
-                        }
-                    }
-                }
-
-                // If no variant images found, fallback to product images
-                if (empty($productItemImages)) {
-                    $productDir = "products/{$productCode}";
-                    if (Storage::disk('public')->exists($productDir)) {
-                        $files = Storage::disk('public')->files($productDir);
-                        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                        foreach ($files as $file) {
-                            $filename = pathinfo($file, PATHINFO_FILENAME);
-                            // Check if filename matches pattern: productcode_main or productcode_number
-                            if (preg_match('/^' . preg_quote($productCode, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                if (in_array($extension, $imageExtensions)) {
-                                    $productItemImages[] = asset("storage/{$file}");
-                                    break; // Use first product image as fallback
-                                }
-                            }
-                        }
-                    }
-                }
+                // Get product item images using ImageService
+                $productItemImages = $this->imageService->getProductItemImages($productCode, $productItem->isku);
 
                 // Load related products for this product item (bidirectional) - optimized single query
                 $itemRelatedProducts = DB::table('product_related')
@@ -797,8 +748,8 @@ class ProductController extends Controller
         $uploadedImages = [];
 
         foreach ($request->file('images') as $index => $image) {
-            // New naming convention: productcode_main for first image, productcode_1, productcode_2, etc. for others
-            $suffix = $index === 0 ? '_main' : '_' . $index;
+            // New naming convention: productcode_Main for first image, productcode_1, productcode_2, etc. for others
+            $suffix = $index === 0 ? 'Main' : '_' . $index;
             $filename = $productCode . $suffix . '.' . $image->getClientOriginalExtension();
             $path = $image->storeAs($productCode, $filename, 'public');
             $uploadedImages[] = [
@@ -837,8 +788,8 @@ class ProductController extends Controller
         $uploadedImages = [];
 
         foreach ($request->file('images') as $index => $image) {
-            // New naming convention: isku_main for first image, isku_1, isku_2, etc. for others
-            $suffix = $index === 0 ? '_main' : '_' . $index;
+            // New naming convention: isku_Main for first image, isku_1, isku_2, etc. for others
+            $suffix = $index === 0 ? 'Main' : '_' . $index;
             $filename = $productItemCode . $suffix . '.' . $image->getClientOriginalExtension();
             $path = $image->storeAs("{$productItem->product_code}/variant/{$productItemCode}", $filename, 'public');
             $uploadedImages[] = [
@@ -1485,24 +1436,8 @@ class ProductController extends Controller
                     }])->where('product_code', $related['entity_code'])->first();
 
                     if ($product) {
-                        // Get product image - new structure: products/product_code/productcode_main, productcode_number
-                        $imageUrl = null;
-                        $productDir = "products/{$product->product_code}";
-                        if (Storage::disk('public')->exists($productDir)) {
-                            $files = Storage::disk('public')->files($productDir);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $filename = pathinfo($file, PATHINFO_FILENAME);
-                                // Check if filename matches pattern: productcode_main or productcode_number
-                                if (preg_match('/^' . preg_quote($product->product_code, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                    if (in_array($extension, $imageExtensions)) {
-                                        $imageUrl = asset("storage/{$file}");
-                                        break; // Use first image found
-                                    }
-                                }
-                            }
-                        }
+                        // Get product image using ImageService
+                        $imageUrl = $this->imageService->getProductImageUrlForRelated($product->product_code);
 
                         $relatedData = [
                             'type' => 'product',
@@ -1521,44 +1456,8 @@ class ProductController extends Controller
                     }])->where('isku', $related['entity_code'])->first();
 
                     if ($productItem) {
-                        // Get product item image - new structure: products/product_code/variant/isku/isku_main, isku_number
-                        $imageUrl = null;
-                        $productItemDir = "products/{$productItem->product_code}/variant/{$productItem->isku}";
-                        if (Storage::disk('public')->exists($productItemDir)) {
-                            $files = Storage::disk('public')->files($productItemDir);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $filename = pathinfo($file, PATHINFO_FILENAME);
-                                // Check if filename matches pattern: isku_main or isku_number
-                                if (preg_match('/^' . preg_quote($productItem->isku, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                    if (in_array($extension, $imageExtensions)) {
-                                        $imageUrl = asset("storage/{$file}");
-                                        break; // Use first image found
-                                    }
-                                }
-                            }
-                        }
-
-                        // If variant image not found, fallback to product image
-                        if (!$imageUrl) {
-                            $productDir = "products/{$productItem->product_code}";
-                            if (Storage::disk('public')->exists($productDir)) {
-                                $files = Storage::disk('public')->files($productDir);
-                                $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                                foreach ($files as $file) {
-                                    $filename = pathinfo($file, PATHINFO_FILENAME);
-                                    // Check if filename matches pattern: productcode_main or productcode_number
-                                    if (preg_match('/^' . preg_quote($productItem->product_code, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                        $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                        if (in_array($extension, $imageExtensions)) {
-                                            $imageUrl = asset("storage/{$file}");
-                                            break; // Use first image found
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        // Get product item image using ImageService
+                        $imageUrl = $this->imageService->getProductItemImageUrlForRelated($productItem->product_code, $productItem->isku);
 
                         $relatedData = [
                             'type' => 'product_item',
@@ -1645,44 +1544,8 @@ class ProductController extends Controller
 
                     $response = [];
                     foreach ($paginatedItems->items() as $item) {
-                    // Get product item image - new structure: products/product_code/variant/isku/isku_main, isku_number
-                    $imageUrl = null;
-                    $productItemDir = "products/{$item->product_code}/variant/{$item->isku}";
-                    if (Storage::disk('public')->exists($productItemDir)) {
-                        $files = Storage::disk('public')->files($productItemDir);
-                        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                        foreach ($files as $file) {
-                            $filename = pathinfo($file, PATHINFO_FILENAME);
-                            // Check if filename matches pattern: isku_main or isku_number
-                            if (preg_match('/^' . preg_quote($item->isku, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                if (in_array($extension, $imageExtensions)) {
-                                    $imageUrl = asset("storage/{$file}");
-                                    break; // Use first image found
-                                }
-                            }
-                        }
-                    }
-
-                    // If variant image not found, fallback to product image
-                    if (!$imageUrl) {
-                        $productDir = "products/{$item->product_code}";
-                        if (Storage::disk('public')->exists($productDir)) {
-                            $files = Storage::disk('public')->files($productDir);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $filename = pathinfo($file, PATHINFO_FILENAME);
-                                // Check if filename matches pattern: productcode_main or productcode_number
-                                if (preg_match('/^' . preg_quote($item->product_code, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                    if (in_array($extension, $imageExtensions)) {
-                                        $imageUrl = asset("storage/{$file}");
-                                        break; // Use first image found
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    // Get product item image using ImageService
+                    $imageUrl = $this->imageService->getProductItemImageUrlForCategories($item->product_code, $item->isku);
 
                         $response[] = [
                             'product_item_code' => $item->product_item_code,
@@ -1718,44 +1581,8 @@ class ProductController extends Controller
 
                     $response = [];
                     foreach ($productItems as $item) {
-                    // Get product item image - new structure: product_code/variant/isku/isku_main, isku_number
-                    $imageUrl = null;
-                    $productItemDir = "{$item->product_code}/variant/{$item->isku}";
-                    if (Storage::disk('public')->exists($productItemDir)) {
-                        $files = Storage::disk('public')->files($productItemDir);
-                        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                        foreach ($files as $file) {
-                            $filename = pathinfo($file, PATHINFO_FILENAME);
-                            // Check if filename matches pattern: isku_main or isku_number
-                            if (preg_match('/^' . preg_quote($item->isku, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                if (in_array($extension, $imageExtensions)) {
-                                    $imageUrl = asset("storage/{$file}");
-                                    break; // Use first image found
-                                }
-                            }
-                        }
-                    }
-
-                    // If variant image not found, fallback to product image
-                    if (!$imageUrl) {
-                        $productDir = $item->product_code;
-                        if (Storage::disk('public')->exists($productDir)) {
-                            $files = Storage::disk('public')->files($productDir);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $filename = pathinfo($file, PATHINFO_FILENAME);
-                                // Check if filename matches pattern: productcode_main or productcode_number
-                                if (preg_match('/^' . preg_quote($item->product_code, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                    if (in_array($extension, $imageExtensions)) {
-                                        $imageUrl = asset("storage/{$file}");
-                                        break; // Use first image found
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    // Get product item image using ImageService
+                    $imageUrl = $this->imageService->getProductItemImageUrlForCategories($item->product_code, $item->isku);
 
                         $response[] = [
                             'product_item_code' => $item->product_item_code,
@@ -1799,24 +1626,8 @@ class ProductController extends Controller
 
                     $response = [];
                     foreach ($paginatedProducts->items() as $product) {
-                        // Get product image - new structure: products/product_code/productcode_main, productcode_number
-                        $imageUrl = null;
-                        $productDir = "products/{$product->product_code}";
-                        if (Storage::disk('public')->exists($productDir)) {
-                            $files = Storage::disk('public')->files($productDir);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $filename = pathinfo($file, PATHINFO_FILENAME);
-                                // Check if filename matches pattern: productcode_main or productcode_number
-                                if (preg_match('/^' . preg_quote($product->product_code, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                    if (in_array($extension, $imageExtensions)) {
-                                        $imageUrl = asset("storage/{$file}");
-                                        break; // Use first image found
-                                    }
-                                }
-                            }
-                        }
+                        // Get product image using ImageService
+                        $imageUrl = $this->imageService->getProductImageUrlForCategories($product->product_code);
 
                         $response[] = [
                             'product_code' => $product->product_code,
@@ -1850,24 +1661,8 @@ class ProductController extends Controller
 
                     $response = [];
                     foreach ($products as $product) {
-                        // Get product image - new structure: products/product_code/productcode_main, productcode_number
-                        $imageUrl = null;
-                        $productDir = "products/{$product->product_code}";
-                        if (Storage::disk('public')->exists($productDir)) {
-                            $files = Storage::disk('public')->files($productDir);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $filename = pathinfo($file, PATHINFO_FILENAME);
-                                // Check if filename matches pattern: productcode_main or productcode_number
-                                if (preg_match('/^' . preg_quote($product->product_code, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                    if (in_array($extension, $imageExtensions)) {
-                                        $imageUrl = asset("storage/{$file}");
-                                        break; // Use first image found
-                                    }
-                                }
-                            }
-                        }
+                        // Get product image using ImageService
+                        $imageUrl = $this->imageService->getProductImageUrlForCategories($product->product_code);
 
                         $response[] = [
                             'product_code' => $product->product_code,
@@ -1954,24 +1749,8 @@ class ProductController extends Controller
 
             $response = [];
             foreach ($products as $product) {
-                        // Get product image - new structure: products/product_code/productcode_main, productcode_number
-                        $imageUrl = null;
-                        $productDir = "products/{$product->product_code}";
-                        if (Storage::disk('public')->exists($productDir)) {
-                            $files = Storage::disk('public')->files($productDir);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $filename = pathinfo($file, PATHINFO_FILENAME);
-                                // Check if filename matches pattern: productcode_main or productcode_number
-                                if (preg_match('/^' . preg_quote($product->product_code, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                    if (in_array($extension, $imageExtensions)) {
-                                        $imageUrl = asset("storage/{$file}");
-                                        break; // Use first image found
-                                    }
-                                }
-                            }
-                        }
+                        // Get product image using ImageService
+                        $imageUrl = $this->imageService->getProductImageUrlForCategories($product->product_code);
 
                 // Get product categories
                 $categories = \DB::table('product_category')
@@ -2038,44 +1817,8 @@ class ProductController extends Controller
 
                 $response = [];
                 foreach ($paginatedItems->items() as $productItem) {
-                        // Get product item image - new structure: products/product_code/variant/isku/isku_main, isku_number
-                        $imageUrl = null;
-                        $productItemDir = "products/{$productCode}/variant/{$productItem->isku}";
-                        if (Storage::disk('public')->exists($productItemDir)) {
-                            $files = Storage::disk('public')->files($productItemDir);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $filename = pathinfo($file, PATHINFO_FILENAME);
-                                // Check if filename matches pattern: isku_main or isku_number
-                                if (preg_match('/^' . preg_quote($productItem->isku, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                    if (in_array($extension, $imageExtensions)) {
-                                        $imageUrl = asset("storage/{$file}");
-                                        break; // Use first image found
-                                    }
-                                }
-                            }
-                        }
-
-                        // If variant image not found, fallback to product image
-                        if (!$imageUrl) {
-                            $productDir = "products/{$productCode}";
-                            if (Storage::disk('public')->exists($productDir)) {
-                                $files = Storage::disk('public')->files($productDir);
-                                $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                                foreach ($files as $file) {
-                                    $filename = pathinfo($file, PATHINFO_FILENAME);
-                                    // Check if filename matches pattern: productcode_main or productcode_number
-                                    if (preg_match('/^' . preg_quote($productCode, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                        $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                        if (in_array($extension, $imageExtensions)) {
-                                            $imageUrl = asset("storage/{$file}");
-                                            break; // Use first image found
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    // Get product item image using ImageService
+                    $imageUrl = $this->imageService->getProductItemImageUrlForProductItems($productCode, $productItem->isku);
 
                     $response[] = [
                         'item_code' => $productItem->product_item_code,
@@ -2110,38 +1853,8 @@ class ProductController extends Controller
 
                 $response = [];
                 foreach ($productItems as $productItem) {
-                    // Get product item image with fallback to product image
-                    $imageUrl = null;
-
-                    // First try the variants directory structure (current)
-                    $productItemImagePath = "products/{$productCode}/variants/{$productItem->isku}";
-                    if (Storage::disk('public')->exists($productItemImagePath)) {
-                        $files = Storage::disk('public')->files($productItemImagePath);
-                        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                        foreach ($files as $file) {
-                            $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                            if (in_array($extension, $imageExtensions)) {
-                                $imageUrl = asset("storage/{$file}");
-                                break; // Use first image found
-                            }
-                        }
-                    }
-
-                    // If variant image not found, fallback to product image
-                    if (!$imageUrl) {
-                        $productImagePath = "products/{$productCode}/product";
-                        if (Storage::disk('public')->exists($productImagePath)) {
-                            $files = Storage::disk('public')->files($productImagePath);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                if (in_array($extension, $imageExtensions)) {
-                                    $imageUrl = asset("storage/{$file}");
-                                    break; // Use first image found
-                                }
-                            }
-                        }
-                    }
+                    // Get product item image using ImageService
+                    $imageUrl = $this->imageService->getProductItemImageUrlForProductItems($productCode, $productItem->isku);
 
                     $response[] = [
                         'item_code' => $productItem->product_item_code,
@@ -2206,24 +1919,8 @@ class ProductController extends Controller
                     }])->where('product_code', $productCode)->first();
 
                     if ($product) {
-                        // Get product image - new structure: products/product_code/productcode_main, productcode_number
-                        $imageUrl = null;
-                        $productDir = "products/{$product->product_code}";
-                        if (Storage::disk('public')->exists($productDir)) {
-                            $files = Storage::disk('public')->files($productDir);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $filename = pathinfo($file, PATHINFO_FILENAME);
-                                // Check if filename matches pattern: productcode_main or productcode_number
-                                if (preg_match('/^' . preg_quote($product->product_code, '/') . '(_main|_\\d+)?$/', $filename)) {
-                                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                    if (in_array($extension, $imageExtensions)) {
-                                        $imageUrl = asset("storage/{$file}");
-                                        break; // Use first image found
-                                    }
-                                }
-                            }
-                        }
+                        // Get product image using ImageService
+                        $imageUrl = $this->imageService->getProductImageUrlForCategories($product->product_code);
 
                         $entities[] = [
                             'type' => 'product',
@@ -2264,38 +1961,8 @@ class ProductController extends Controller
                     }])->where('isku', $isku)->first();
 
                     if ($productItem) {
-                        // Get product item image with fallback to product image
-                        $imageUrl = null;
-
-                        // First try the variants directory structure (current)
-                        $productItemImagePath = "products/{$productItem->product_code}/variants/{$productItem->isku}";
-                        if (Storage::disk('public')->exists($productItemImagePath)) {
-                            $files = Storage::disk('public')->files($productItemImagePath);
-                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                            foreach ($files as $file) {
-                                $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                if (in_array($extension, $imageExtensions)) {
-                                    $imageUrl = asset("storage/{$file}");
-                                    break; // Use first image found
-                                }
-                            }
-                        }
-
-                        // If variant image not found, fallback to product image
-                        if (!$imageUrl) {
-                            $productImagePath = "products/{$productItem->product_code}/product";
-                            if (Storage::disk('public')->exists($productImagePath)) {
-                                $files = Storage::disk('public')->files($productImagePath);
-                                $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                                foreach ($files as $file) {
-                                    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                                    if (in_array($extension, $imageExtensions)) {
-                                        $imageUrl = asset("storage/{$file}");
-                                        break; // Use first image found
-                                    }
-                                }
-                            }
-                        }
+                        // Get product item image using ImageService
+                        $imageUrl = $this->imageService->getProductItemImageUrlForCategories($productItem->product_code, $productItem->isku);
 
                         $entities[] = [
                             'type' => 'product_item',
@@ -2421,10 +2088,10 @@ class ProductController extends Controller
                     $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
                     // Skip files that don't match the expected pattern
-                    if (!preg_match('/^' . preg_quote($productCode, '/') . '(_main|_\\d+)?\.' . $extension . '$/', $filename)) {
+                    if (!preg_match('/^' . preg_quote($productCode, '/') . '(_Main|_\\d+)?\.' . $extension . '$/', $filename)) {
                         // Rename file to match expected pattern
-                        if (strpos($filename, '_main') !== false) {
-                            $newFilename = $productCode . '_main.' . $extension;
+                        if (strpos($filename, '_Main') !== false) {
+                            $newFilename = $productCode . '_Main.' . $extension;
                         } else {
                             $newFilename = $productCode . '_' . $imageIndex . '.' . $extension;
                             $imageIndex++;
@@ -2460,10 +2127,10 @@ class ProductController extends Controller
                         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
                         // Skip files that don't match the expected pattern
-                        if (!preg_match('/^' . preg_quote($isku, '/') . '(_main|_\\d+)?\.' . $extension . '$/', $filename)) {
+                        if (!preg_match('/^' . preg_quote($isku, '/') . '(_Main|_\\d+)?\.' . $extension . '$/', $filename)) {
                             // Rename file to match expected pattern
-                            if (strpos($filename, '_main') !== false) {
-                                $newFilename = $isku . '_main.' . $extension;
+                            if (strpos($filename, '_Main') !== false) {
+                                $newFilename = $isku . '_Main.' . $extension;
                             } else {
                                 $newFilename = $isku . '_' . $variantImageIndex . '.' . $extension;
                                 $variantImageIndex++;

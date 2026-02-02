@@ -25,6 +25,7 @@ class DatabaseServiceProvider extends ServiceProvider
         if (app()->environment(['local', 'development']) && !$this->app->runningInConsole()) {
             Log::info("DatabaseServiceProvider: Starting database check");
             $this->ensureDatabaseExists();
+            $this->ensureStorageLinkExists();
         } else {
             Log::info("DatabaseServiceProvider: Skipping - environment: " . app()->environment() . ", console: " . $this->app->runningInConsole());
         }
@@ -102,6 +103,27 @@ class DatabaseServiceProvider extends ServiceProvider
             } catch (\Exception $fallbackException) {
                 Log::error("Fallback setup also failed: " . $fallbackException->getMessage());
             }
+        }
+    }
+
+    /**
+     * Ensure the storage link exists for public file access
+     */
+    private function ensureStorageLinkExists()
+    {
+        $storageLink = public_path('storage');
+        $storageTarget = storage_path('app/public');
+
+        try {
+            if (!file_exists($storageLink)) {
+                Log::info("Storage link not found, creating storage link...");
+                \Artisan::call('storage:link');
+                Log::info("Storage link created successfully");
+            } else {
+                Log::info("Storage link already exists");
+            }
+        } catch (\Exception $e) {
+            Log::error("Failed to create storage link: " . $e->getMessage());
         }
     }
 }

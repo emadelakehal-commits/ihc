@@ -121,8 +121,10 @@ To download the product images from Google Drive:
 2. **Download images:**
    ```bash
    cd /Applications/XAMPP/xamppfiles/htdocs/ihc/storage/app/public/products/
-   gdown --folder https://drive.google.com/drive/folders/1tdD2d4DkMjoAwAGf8ZiMBqzveBp8Fpw0?usp=drive_link
-   ```
+gdown --folder https://drive.google.com/drive/folders/1tdD2d4DkMjoAwAGf8ZiMBqzveBp8Fpw0 
+mv "ibiidi heating "/* . 
+rmdir "ibiidi heating "
+
 
 This is a Laravel-based application for managing international health care products with multi-language support, product variants, and comprehensive categorization.
 
