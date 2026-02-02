@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class SetupFreshDatabase extends Command
 {
@@ -62,6 +63,9 @@ class SetupFreshDatabase extends Command
 
         $this->info('Fresh IHC database setup completed!');
         $this->info('You can now start fresh migrations from this baseline.');
+        
+        // Ensure storage directories exist
+        $this->ensureStorageDirectoriesExist();
     }
 
     private function createDatabaseIfNotExists()
@@ -121,5 +125,34 @@ class SetupFreshDatabase extends Command
             Schema::dropIfExists($table);
             $this->line("Dropped table: {$table}");
         }
+    }
+
+    /**
+     * Ensure required storage directories exist
+     */
+    private function ensureStorageDirectoriesExist()
+    {
+        $directories = [
+            'categories',
+            'excel',
+            'images',
+            'product-documents',
+            'products',
+        ];
+
+        $this->info('Ensuring storage directories exist...');
+
+        foreach ($directories as $directory) {
+            $path = 'public/' . $directory;
+            
+            if (!Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->makeDirectory($path, 0755, true);
+                $this->line("Created directory: {$path}");
+            } else {
+                $this->line("Directory exists: {$path}");
+            }
+        }
+
+        $this->info('All required storage directories are ready.');
     }
 }
