@@ -9,6 +9,122 @@
 
 ## IHC - International Health Care Application
 
+### Prerequisites
+
+Before setting up this project, ensure you have the following installed:
+
+#### System Requirements
+- **PHP 8.1 or higher** with the following extensions:
+  - `ext-pdo`
+  - `ext-mbstring`
+  - `ext-openssl`
+  - `ext-tokenizer`
+  - `ext-xml`
+  - `ext-curl`
+  - `ext-json`
+  - `ext-gd` (for image processing)
+  - `ext-zip` (for Excel file processing)
+  - `ext-simplexml` (for Excel file processing)
+
+#### Database Requirements
+- **MySQL 8.0+** or **MariaDB 10.3+** (recommended)
+  - UTF8MB4 charset support
+  - InnoDB storage engine
+- **Alternative Databases:**
+  - PostgreSQL 12+
+  - SQLite 3.8.8+ (for development/testing)
+
+#### Development Tools
+- **Composer** (PHP dependency manager)
+- **Node.js 16+** and **npm** (for frontend assets)
+- **Git** (version control)
+
+#### Optional Dependencies
+- **Redis 6.0+** (for caching and queue management)
+- **Apache/NGINX** (web server)
+- **XAMPP/MAMP/WAMP** (local development environment)
+
+#### Environment Setup
+- **Operating System:** Linux, macOS, or Windows
+- **Memory:** Minimum 2GB RAM (4GB recommended)
+- **Storage:** Minimum 1GB free space
+
+#### PHP Configuration
+Ensure your `php.ini` has these settings:
+```ini
+memory_limit = 256M
+upload_max_filesize = 10M
+post_max_size = 10M
+max_execution_time = 300
+```
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd ihc
+   ```
+
+2. **Install PHP dependencies:**
+   ```bash
+   composer install
+   ```
+
+3. **Install frontend dependencies:**
+   ```bash
+   npm install
+   ```
+
+4. **Build frontend assets:**
+   ```bash
+   npm run dev
+   ```
+
+5. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+6. **Set up database connection** in `.env` file:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=ihc
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
+
+7. **Run database setup:**
+   ```bash
+   php artisan ihc:setup-fresh-database --seed
+   ```
+
+8. **Start the development server:**
+   ```bash
+   php artisan serve
+   ```
+
+The application will be available at `http://127.0.0.1:8000`
+
+### Download Product Images
+
+To download the product images from Google Drive:
+
+1. **Install gdown:**
+   ```bash
+   pip install gdown
+   ```
+   (If pip isn't found: `python3 -m pip install gdown`)
+
+2. **Download images:**
+   ```bash
+   cd /PATH_TO_PROJECT_FOLDER/storage/app/public/products/
+   gdown --folder https://drive.google.com/drive/folders/1BHgOo6LPUJbsg-TAplKRUW2YODhiIWW5?usp=sharing
+   ```
+
 This is a Laravel-based application for managing international health care products with multi-language support, product variants, and comprehensive categorization.
 
 ### Database Setup

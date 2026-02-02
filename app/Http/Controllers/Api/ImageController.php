@@ -16,35 +16,6 @@ class ImageController extends Controller
     ) {}
 
     /**
-     * Download and organize product images from Google Drive
-     */
-    public function downloadFromDrive(Request $request): JsonResponse
-    {
-        try {
-            $request->validate([
-                'drive_url' => 'required|url'
-            ]);
-
-            $driveUrl = $request->input('drive_url');
-
-            $result = $this->imageDownloadService->downloadFromGoogleDrive($driveUrl);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Images downloaded and organized successfully',
-                'data' => $result
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error downloading images from Google Drive',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
      * Upload images for product
      */
     public function uploadProductImages(UploadImagesRequest $request, string $productCode): JsonResponse

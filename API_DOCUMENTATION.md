@@ -8,6 +8,40 @@ http://127.0.0.1:8000/api
 ## Authentication
 All endpoints are currently public (no authentication required).
 
+## Required Headers
+All API requests must include the following headers:
+
+**Content-Type:** `application/json` (for JSON requests)
+**Accept:** `application/json` (to receive JSON responses)
+**User-Agent:** `IHC-Product-API/1.0` (required for API identification)
+**Content-Type:** `multipart/form-data` (for file uploads)
+
+**Example Headers:**
+```
+Content-Type: application/json
+Accept: application/json
+User-Agent: IHC-Product-API/1.0
+```
+
+**For File Uploads:**
+```
+Content-Type: multipart/form-data
+Accept: application/json
+User-Agent: IHC-Product-API/1.0
+```
+
+**Additional Required Headers**
+- `X-Client-App: grok-web`
+- `X-Request-ID: $(date +%s)-$(openssl rand -hex 4)`
+- `X-Timestamp: $(date +%s)`
+- `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJjYXRhbG9nIiwic3ViIjoidGVzdC11c2VyIiwiZXhwIjoxOTA0MzI5NjAwfQ.wgDOPgvElFYd09sjnnzLljnDBJxgazhADi5spkwZJi4`
+- `User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36`
+
+**Additional Optional Headers:**
+- `X-Requested-With: XMLHttpRequest` (for AJAX requests)
+- `X-API-Version: 1.0` (for version tracking)
+- `X-Client-ID: your-client-id` (for client identification)
+
 ---
 
 ## 1. Create Product
@@ -624,6 +658,8 @@ curl -X POST http://127.0.0.1:8000/api/products/WHPL-180-120/images \
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/categories/details" \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "User-Agent: IHC-Product-API/1.0" \
   -d '{
     "categories": ["books", "electronics", "laptops"],
     "lang": "en"
@@ -661,6 +697,8 @@ curl -X POST "http://127.0.0.1:8000/api/categories/details" \
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/categories/details" \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "User-Agent: IHC-Product-API/1.0" \
   -d '{
     "categories": ["books", "electronics"],
     "lang": "lt"
@@ -1339,6 +1377,7 @@ All images are accessible via public URLs and only image files are returned in A
 curl -X POST "http://127.0.0.1:8000/api/products/PRODUCT123/documents" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
+  -H "User-Agent: IHC-Product-API/1.0" \
   -d '{
     "product_code": "PRODUCT123",
     "lang": "en",
@@ -1352,7 +1391,8 @@ fetch('http://127.0.0.1:8000/api/products/PRODUCT123/documents', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
+    'Accept': 'application/json',
+    'User-Agent': 'IHC-Product-API/1.0'
   },
   body: JSON.stringify({
     product_code: 'PRODUCT123',
@@ -1365,7 +1405,7 @@ fetch('http://127.0.0.1:8000/api/products/PRODUCT123/documents', {
 **Postman:**
 - **Method:** POST
 - **URL:** `http://127.0.0.1:8000/api/products/PRODUCT123/documents`
-- **Headers:** Add `Content-Type: application/json` and `Accept: application/json`
+- **Headers:** Add `Content-Type: application/json`, `Accept: application/json`, and `User-Agent: IHC-Product-API/1.0`
 - **Body:** Select "raw" and "JSON", then add:
 ```json
 {
