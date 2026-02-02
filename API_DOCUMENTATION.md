@@ -1308,6 +1308,157 @@ All images are accessible via public URLs and only image files are returned in A
 
 ---
 
+## 16. Get Product Documents
+
+**Endpoint:** `POST /api/products/documents`  
+**Purpose:** Retrieve documents for a specific product filtered by language and purpose.
+
+**Request Body (JSON):**
+```json
+{
+  "product_code": "PRODUCT123",
+  "lang": "en",
+  "purpose": "manual"
+}
+```
+
+**Parameters:**
+- `product_code` (string, required): Product code (must exist in product table)
+- `lang` (string, required): Language code (e.g., 'en', 'de', 'lt') - must exist in lkp_language table
+- `purpose` (string, optional): Document purpose (e.g., 'manual', 'installation', 'warranty') - defaults to 'manual'
+
+**Examples:**
+- Get manual documents for English
+- Get installation documents for German
+- Get warranty documents
+
+**Request Examples:**
+
+**cURL:**
+```bash
+curl -X POST "http://127.0.0.1:8000/api/products/PRODUCT123/documents" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "product_code": "PRODUCT123",
+    "lang": "en",
+    "purpose": "manual"
+  }'
+```
+
+**JavaScript:**
+```javascript
+fetch('http://127.0.0.1:8000/api/products/PRODUCT123/documents', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  body: JSON.stringify({
+    product_code: 'PRODUCT123',
+    lang: 'en',
+    purpose: 'manual'
+  })
+})
+```
+
+**Postman:**
+- **Method:** POST
+- **URL:** `http://127.0.0.1:8000/api/products/PRODUCT123/documents`
+- **Headers:** Add `Content-Type: application/json` and `Accept: application/json`
+- **Body:** Select "raw" and "JSON", then add:
+```json
+{
+  "product_code": "PRODUCT123",
+  "lang": "en",
+  "purpose": "manual"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Product documents retrieved successfully",
+  "data": {
+    "product_code": "PRODUCT123",
+    "language": "en",
+    "purpose": "manual",
+    "documents": [
+      {
+        "file_path": "http://localhost/storage/product-documents/PRODUCT123/manual/product123_manual_en.pdf",
+        "file_size_mb": 1.5,
+        "file_type": "pdf",
+        "name": "Product123 Manual",
+        "original_filename": "product123_manual_en.pdf"
+      },
+      {
+        "file_path": "http://localhost/storage/product-documents/PRODUCT123/manual/product123_specification_en.docx",
+        "file_size_mb": 0.8,
+        "file_type": "docx",
+        "name": "Product123 Manual",
+        "original_filename": "product123_specification_en.docx"
+      }
+    ]
+  }
+}
+```
+
+**Response Structure:**
+- **Root Level:**
+  - `success` (boolean): Indicates if the request was successful
+  - `message` (string): Human-readable message about the result
+  - `data` (object): Contains the actual data when successful
+- **Data Object:**
+  - `product_code` (string): The product code requested
+  - `language` (string): The language code used for filtering
+  - `purpose` (string): The document purpose (manual, installation, warranty)
+  - `documents` (array): Array of document objects
+- **Document Object:**
+  - `file_path` (string): **Downloadable URL** to access and download the document directly
+  - `file_size_mb` (number): File size in megabytes (rounded to 2 decimal places)
+  - `file_type` (string): File extension (pdf, docx, etc.)
+  - `name` (string): Display name for the document (e.g., "Product Name Manual")
+  - `original_filename` (string): Original filename from the filesystem
+
+**Error Response (404 - Product Not Found):**
+```json
+{
+  "success": false,
+  "message": "Product not found"
+}
+```
+
+**Error Response (422 - Validation Error):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "product_code": ["The product code field is required."],
+    "lang": ["The lang field is required."]
+  }
+}
+```
+
+**Error Response (500 - Server Error):**
+```json
+{
+  "success": false,
+  "message": "Failed to retrieve product documents",
+  "error": "Detailed error message"
+}
+```
+
+**Notes:**
+- Documents are automatically organized in `storage/app/public/product-documents/{productCode}/{purpose}/` folders
+- Only documents matching the specified language code are included
+- Default purpose is "manual" if not specified
+- File names are filtered by language code (case-insensitive)
+- Documents are served from the public storage disk
+
+---
+
 ## API Features
 
 - **Multi-language Support:** Products and attributes support multiple languages

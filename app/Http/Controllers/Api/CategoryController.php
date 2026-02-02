@@ -8,6 +8,7 @@ use App\Http\Requests\GetCategoryTreeRequest;
 use App\Http\Requests\GetSubCategoriesRequest;
 use App\Http\Requests\GetCategoryDetailsRequest;
 use App\Services\CategoryService;
+use App\Helpers\PerformanceHelper;
 use Illuminate\Http\JsonResponse;
 
 class CategoryController extends Controller
@@ -47,7 +48,12 @@ class CategoryController extends Controller
     public function getCategoryTree(GetCategoryTreeRequest $request): JsonResponse
     {
         try {
-            $data = $this->categoryService->getCategoryTree($request->input('lang'));
+            $language = $request->input('lang');
+            
+            // Monitor performance for the category tree operation
+            $data = PerformanceHelper::monitorCategoryTreePerformance($language, function() use ($language) {
+                return $this->categoryService->getCategoryTree($language);
+            });
 
             return response()->json([
                 'success' => true,

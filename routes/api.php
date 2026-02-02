@@ -33,4 +33,5 @@ Route::middleware(['api.response', 'api.logging', 'api.rate.limit'])->group(func
     Route::get('products/{productCode}/items', [ProductController::class, 'getProductItems']);
     Route::get('entities/by-tag/{tagCode}/{lang}', [ProductController::class, 'getEntitiesByTag']);
     Route::post('images/download-from-drive', [ImageController::class, 'downloadFromDrive']);
+    Route::post('products/documents', [ProductController::class, 'getProductDocuments']);
 });

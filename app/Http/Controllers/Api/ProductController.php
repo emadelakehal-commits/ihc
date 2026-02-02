@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateProductRequest;
+use App\Http\Requests\GetProductDocumentsRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Models\ProductItem;
@@ -43,6 +44,10 @@ class ProductController extends Controller
     {
         try {
             $product = $this->productService->createProduct($request->validated());
+            
+            // Create product folder in product-documents directory
+            \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory("product-documents/{$product->product_code}");
+            
             return new ProductResource($product);
         } catch (\Exception $e) {
             return response()->json([
@@ -2503,6 +2508,28 @@ class ProductController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error downloading images from Google Drive',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get product documents for a specific product and language
+     */
+    public function getProductDocuments(GetProductDocumentsRequest $request)
+    {
+        try {
+            $productCode = $request->input('product_code');
+            $language = $request->input('lang');
+            $purpose = $request->input('purpose', 'manual'); // Default to 'manual' if empty
+
+            $documentsData = $this->productService->getProductDocuments($productCode, $language, $purpose);
+
+            return new \App\Http\Resources\ProductDocumentsResource($documentsData);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve product documents',
                 'error' => $e->getMessage()
             ], 500);
         }

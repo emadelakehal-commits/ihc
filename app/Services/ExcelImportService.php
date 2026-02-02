@@ -149,6 +149,13 @@ class ExcelImportService
                             'summary' => $productData['product_summary'] ?? $productData['product_name'],
                             'description' => $productData['product_name']
                         ]);
+                        
+                        // Create product folder in product-documents directory
+                        \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory("product-documents/{$productData['product_code']}");
+                        
+                        // Create manual subfolder
+                        \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory("product-documents/{$productData['product_code']}/manual");
+                        
                         $totalNewProductsInserted++;
                     } else {
                         if (!isset($updatedProductCodes[$productData['product_code']])) {

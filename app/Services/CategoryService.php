@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\CategoryRepository;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 
 class CategoryService
 {
@@ -33,8 +34,13 @@ class CategoryService
      */
     public function getCategoryTree(string $language): array
     {
-        $categories = $this->categoryRepository->getAllWithRelationships($language);
-        return $this->buildCategoryTree($categories, $language);
+        $cacheKey = "category_tree_{$language}";
+        
+        return Cache::remember($cacheKey, now()->addHours(1), function() use ($language) {
+            // Use the optimized single query method
+            $categoriesData = $this->categoryRepository->getCategoryTreeData($language);
+            return $this->buildOptimizedCategoryTree($categoriesData, $language);
+        });
     }
 
     /**
@@ -116,6 +122,46 @@ class CategoryService
     }
 
     /**
+     * Build an optimized hierarchical tree structure from flat category data
+     * This method uses the optimized single query result to eliminate N+1 queries
+     */
+    private function buildOptimizedCategoryTree(array $categoriesData, string $language): array
+    {
+        $categoryMap = [];
+
+        // Process the optimized query result
+        foreach ($categoriesData as $categoryData) {
+            $categoryCode = $categoryData->category_code;
+            $name = $categoryData->name;
+            $parentCodes = $categoryData->parent_codes ? explode(',', $categoryData->parent_codes) : [];
+
+            $categoryMap[$categoryCode] = [
+                'category_code' => $categoryCode,
+                'name' => $name,
+                'image_url' => $this->getCachedCategoryImageUrl($categoryCode, $language),
+                'parent_codes' => $parentCodes,
+                'children' => []
+            ];
+        }
+
+        // Build the tree structure
+        $tree = [];
+        foreach ($categoryMap as $code => &$category) {
+            if (empty($category['parent_codes'])) {
+                $tree[] = &$category;
+            } else {
+                foreach ($category['parent_codes'] as $parentCode) {
+                    if (isset($categoryMap[$parentCode])) {
+                        $categoryMap[$parentCode]['children'][] = &$category;
+                    }
+                }
+            }
+        }
+
+        return $tree;
+    }
+
+    /**
      * Get category image URL
      */
     private function getCategoryImageUrl(string $categoryCode, string $language): ?string
@@ -149,5 +195,17 @@ class CategoryService
         }
 
         return null;
+    }
+
+    /**
+     * Get cached category image URL to reduce file system operations
+     */
+    private function getCachedCategoryImageUrl(string $categoryCode, string $language): ?string
+    {
+        $cacheKey = "category_image_{$categoryCode}_{$language}";
+        
+        return Cache::remember($cacheKey, now()->addHours(2), function() use ($categoryCode, $language) {
+            return $this->getCategoryImageUrl($categoryCode, $language);
+        });
     }
 }

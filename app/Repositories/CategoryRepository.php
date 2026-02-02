@@ -111,4 +111,42 @@ class CategoryRepository
             ->groupBy('category_code')
             ->toArray();
     }
+
+    /**
+     * Get all categories with hierarchy data in a single optimized query
+     * This method eliminates the N+1 query problem by fetching all data at once
+     */
+    public function getCategoryTreeData(string $language): array
+    {
+        return DB::table('lkp_category as c')
+            ->leftJoin('category_hierarchy as ch', 'c.category_code', '=', 'ch.category_code')
+            ->leftJoin('lkp_category_translation as ct', function($join) use ($language) {
+                $join->on('c.category_code', '=', 'ct.category_code')
+                     ->where('ct.language', '=', $language);
+            })
+            ->select(
+                'c.category_code',
+                'ct.name',
+                DB::raw('GROUP_CONCAT(ch.parent_code) as parent_codes')
+            )
+            ->groupBy('c.category_code', 'ct.name')
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Get all categories with translations in a single optimized query
+     * This replaces the getAllWithRelationships method for better performance
+     */
+    public function getAllCategoriesWithTranslations(string $language): array
+    {
+        return DB::table('lkp_category as c')
+            ->leftJoin('lkp_category_translation as ct', function($join) use ($language) {
+                $join->on('c.category_code', '=', 'ct.category_code')
+                     ->where('ct.language', '=', $language);
+            })
+            ->select('c.category_code', 'ct.name')
+            ->get()
+            ->toArray();
+    }
 }
