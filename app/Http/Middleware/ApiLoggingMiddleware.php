@@ -16,8 +16,8 @@ class ApiLoggingMiddleware
     {
         $startTime = microtime(true);
 
-        // Log incoming request
-        Log::info('API Request', [
+        // Log incoming request to dedicated API log channel
+        \Log::channel('api')->info('API Request', [
             'method' => $request->method(),
             'url' => $request->fullUrl(),
             'ip' => $request->ip(),
@@ -35,8 +35,8 @@ class ApiLoggingMiddleware
         $endTime = microtime(true);
         $duration = round(($endTime - $startTime) * 1000, 2); // Convert to milliseconds
 
-        // Log response
-        Log::info('API Response', [
+        // Log response to dedicated API log channel
+        \Log::channel('api')->info('API Response', [
             'method' => $request->method(),
             'url' => $request->fullUrl(),
             'status' => $response->getStatusCode(),

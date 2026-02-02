@@ -27,7 +27,7 @@ class AuthorizeCatalogAccess
         $jwtPayload = $this->decodeJwt($request);
 
         if (!$jwtPayload) {
-            Log::warning('JWT decoding failed', [
+            \Log::channel('security')->warning('JWT decoding failed', [
                 'request_id' => $requestId,
                 'user_id' => $userId,
             ]);
@@ -39,7 +39,7 @@ class AuthorizeCatalogAccess
         }
 
         // TEMPORARILY BYPASS ROLE CHECKING - User roles ignored for now
-        Log::info('Authorization successful - roles bypassed', [
+        \Log::channel('security')->info('Authorization successful - roles bypassed', [
             'request_id' => $requestId,
             'user_id' => $userId,
             'jwt_user_id' => $jwtPayload->sub ?? null,
@@ -70,7 +70,10 @@ class AuthorizeCatalogAccess
         $jwtSecret = env('JWT_SECRET');
 
         try {
-            $decoded = JWT::decode($token, new Key($jwtSecret, 'HS256'));
+            // Ensure JWT secret is a string, not a SensitiveParameterValue object
+            $jwtSecretString = is_object($jwtSecret) ? (string)$jwtSecret : $jwtSecret;
+
+            $decoded = JWT::decode($token, new Key($jwtSecretString, 'HS256'));
 
             // Validate JWT claims
             if (!$this->validateJwtClaims($decoded)) {
@@ -79,9 +82,12 @@ class AuthorizeCatalogAccess
 
             return $decoded;
         } catch (Exception $e) {
-            Log::warning('JWT decoding error', [
+            // Log to dedicated error channel
+            \Log::channel('error')->error('JWT decoding error', [
                 'error' => $e->getMessage(),
                 'request_id' => $request->header('X-Request-ID'),
+                'user_id' => $request->header('X-User-Id'),
+                'token_prefix' => substr($token, 0, 10) . '...',
             ]);
             return null;
         }
@@ -97,7 +103,7 @@ class AuthorizeCatalogAccess
     {
         // Validate audience (aud) must equal "catalog"
         if (!isset($payload->aud) || $payload->aud !== 'catalog') {
-            Log::warning('Invalid JWT audience', [
+            \Log::channel('security')->warning('Invalid JWT audience', [
                 'aud' => $payload->aud ?? 'missing',
                 'expected' => 'catalog',
             ]);
@@ -106,7 +112,7 @@ class AuthorizeCatalogAccess
 
         // Validate subject (sub) exists
         if (!isset($payload->sub) || empty($payload->sub)) {
-            Log::warning('Missing JWT subject');
+            \Log::channel('security')->warning('Missing JWT subject');
             return false;
         }
 

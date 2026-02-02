@@ -71,19 +71,12 @@ max_execution_time = 300
    composer install
    ```
 
-3. **Install frontend dependencies:**
-   ```bash
-   npm install
-   ```
-
-4. **Build frontend assets:**
-   ```bash
-   npm run dev
-   ```
-
-5. **Configure environment:**
+3. **Configure environment:**
    ```bash
    cp .env.example .env
+   set values in .env
+   set the JWT_SECRET as f10d08554d83513cc75911ad1899030f0958620414fc971f2b5ae7dd5c424e639165abc63bd7345c5f076ca3d5d09d0ab23369833c6af0c037d4ee636f0a05b4
+   set the CORS_ALLOWED_ORIGINS : ibiidi heating website link
    php artisan key:generate
    ```
 
@@ -99,7 +92,13 @@ max_execution_time = 300
 
 7. **Run database setup:**
    ```bash
-   php artisan ihc:setup-fresh-database --seed
+php artisan ihc:setup-database 
+php artisan migrate --force
+php artisan storage:ensure-directories  # This will create the directories
+php artisan db:seed --force
+
+
+
    ```
 
 8. **Start the development server:**
@@ -121,8 +120,8 @@ To download the product images from Google Drive:
 
 2. **Download images:**
    ```bash
-   cd /PATH_TO_PROJECT_FOLDER/storage/app/public/products/
-   gdown --folder https://drive.google.com/drive/folders/1BHgOo6LPUJbsg-TAplKRUW2YODhiIWW5?usp=sharing
+   cd /Applications/XAMPP/xamppfiles/htdocs/ihc/storage/app/public/products/
+   gdown --folder https://drive.google.com/drive/folders/1tdD2d4DkMjoAwAGf8ZiMBqzveBp8Fpw0?usp=drive_link
    ```
 
 This is a Laravel-based application for managing international health care products with multi-language support, product variants, and comprehensive categorization.

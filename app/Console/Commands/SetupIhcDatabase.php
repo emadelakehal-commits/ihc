@@ -82,10 +82,10 @@ class SetupIhcDatabase extends Command
         $this->info('Ensuring storage directories exist...');
 
         foreach ($directories as $directory) {
-            $path = 'public/' . $directory;
+            $path = storage_path('app/public/' . $directory);
             
-            if (!Storage::disk('local')->exists($path)) {
-                Storage::disk('local')->makeDirectory($path, 0755, true);
+            if (!file_exists($path)) {
+                mkdir($path, 0755, true);
                 $this->line("Created directory: {$path}");
             } else {
                 $this->line("Directory exists: {$path}");
