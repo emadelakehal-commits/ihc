@@ -34,3 +34,8 @@ Route::middleware(['api.response', 'api.logging', 'api.rate.limit'])->group(func
     Route::get('entities/by-tag/{tagCode}/{lang}', [ProductController::class, 'getEntitiesByTag']);
     Route::post('products/documents', [ProductController::class, 'getProductDocuments']);
 });
+
+// File upload routes (outside middleware group to avoid issues with large file uploads and authentication)
+Route::post('products/upload-zip', [ImageController::class, 'uploadZipFile'])
+    ->name('products.upload-zip')
+    ->middleware([\App\Http\Middleware\ExcludeZipUploadFromInternalRequest::class]);

@@ -18,7 +18,7 @@ return [
     |
     */
 
-    'default' => env('LOG_CHANNEL', 'daily'),
+    'default' => env('LOG_CHANNEL', 'rotational'),
 
     /*
     |--------------------------------------------------------------------------
@@ -54,7 +54,7 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            'channels' => explode(',', (string) env('LOG_STACK', 'rotational')),
             'ignore_exceptions' => false,
         ],
 
@@ -69,7 +69,15 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => env('LOG_DAILY_DAYS', 14),
+            'days' => env('LOG_DAILY_DAYS', 30),
+            'replace_placeholders' => true,
+        ],
+
+        'rotational' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/' . date('Y-m-d') . '.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 30),
             'replace_placeholders' => true,
         ],
 
@@ -125,51 +133,6 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
-        ],
-
-        // API request logging with rotation
-        'api' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/api.log'),
-            'level' => env('LOG_LEVEL', 'info'),
-            'days' => env('LOG_API_DAYS', 30),
-            'replace_placeholders' => true,
-        ],
-
-        // Error logging with rotation
-        'error' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/error.log'),
-            'level' => 'error',
-            'days' => env('LOG_ERROR_DAYS', 90),
-            'replace_placeholders' => true,
-        ],
-
-        // System events logging with rotation
-        'system' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/system.log'),
-            'level' => 'info',
-            'days' => env('LOG_SYSTEM_DAYS', 60),
-            'replace_placeholders' => true,
-        ],
-
-        // Database query logging with rotation
-        'query' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/query.log'),
-            'level' => 'debug',
-            'days' => env('LOG_QUERY_DAYS', 7),
-            'replace_placeholders' => true,
-        ],
-
-        // Security events logging with rotation
-        'security' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/security.log'),
-            'level' => 'warning',
-            'days' => env('LOG_SECURITY_DAYS', 365),
-            'replace_placeholders' => true,
         ],
 
     ],

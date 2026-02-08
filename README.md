@@ -1,13 +1,4 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
-
-## IHC - International Health Care Application
+## IHC - Ibiidi Heating Catalog
 
 ### Prerequisites
 
@@ -15,34 +6,37 @@ Before setting up this project, ensure you have the following installed:
 
 #### System Requirements
 - **PHP 8.1 or higher** with the following extensions:
-  - `ext-pdo`
-  - `ext-mbstring`
-  - `ext-openssl`
-  - `ext-tokenizer`
-  - `ext-xml`
-  - `ext-curl`
-  - `ext-json`
-  - `ext-gd` (for image processing)
-  - `ext-zip` (for Excel file processing)
-  - `ext-simplexml` (for Excel file processing)
+  - `ext-pdo` (required for database operations)
+  - `ext-mbstring` (required for Unicode string handling)
+  - `ext-openssl` (required for secure connections)
+  - `ext-tokenizer` (required by Laravel framework)
+  - `ext-xml` (required for XML processing)
+  - `ext-curl` (required for HTTP requests and API calls)
+  - `ext-json` (required for JSON data handling)
+  - `ext-gd` (required for image processing and uploads)
+  - `ext-zip` (required for ZIP file extraction and Excel processing)
+  - `ext-simplexml` (required for Excel file processing via PhpSpreadsheet)
 
-#### Database Requirements
-- **MySQL 8.0+** or **MariaDB 10.3+** (recommended)
-  - UTF8MB4 charset support
-  - InnoDB storage engine
-- **Alternative Databases:**
-  - PostgreSQL 12+
-  - SQLite 3.8.8+ (for development/testing)
-
-#### Development Tools
-- **Composer** (PHP dependency manager)
-- **Node.js 16+** and **npm** (for frontend assets)
-- **Git** (version control)
+**Note:** These extensions are typically included by default in most PHP installations (XAMPP, WAMP, MAMP, and standard hosting environments). No manual installation should be required in most cases.
 
 #### Optional Dependencies
-- **Redis 6.0+** (for caching and queue management)
 - **Apache/NGINX** (web server)
 - **XAMPP/MAMP/WAMP** (local development environment)
+
+**Note:** Redis is configured in the application but not actively used. The project currently uses database-based caching and queue management.
+
+#### PM2 Requirements (for Production Deployments)
+**Node.js and npm are required for PM2:**
+- **Node.js 18+** (same version as Development Tools requirement)
+- **npm** (bundled with Node.js)
+- **PM2** (installed via: `npm install -g pm2`)
+
+**Note:** Node.js is required for PM2 process management in this microservice architecture. Vite asset compilation is not needed for this API-only service.
+
+#### Database Requirements
+- **MySQL 8.0+** 
+  - UTF8MB4 charset support
+  - InnoDB storage engine
 
 #### Environment Setup
 - **Operating System:** Linux, macOS, or Windows
@@ -57,6 +51,12 @@ upload_max_filesize = 10M
 post_max_size = 10M
 max_execution_time = 300
 ```
+
+**Testing Framework:**
+- **PHPUnit** for unit and feature testing
+- Built-in Laravel testing utilities
+- SQLite in-memory database for testing
+
 
 ### Installation
 
@@ -108,119 +108,20 @@ php artisan db:seed --force
 
 The application will be available at `http://127.0.0.1:8000`
 
-### Download Product Images
+### Upload Product Images
+Incase you don't have the product images on your local machine download them from : https://drive.google.com/drive/folders/1tdD2d4DkMjoAwAGf8ZiMBqzveBp8Fpw0?usp=sharing
 
-To download the product images from Google Drive:
-
-1. **Install gdown:**
-   ```bash
-   pip install gdown
-   ```
-   (If pip isn't found: `python3 -m pip install gdown`)
-
-2. **Download images:**
-   ```bash
-   cd /Applications/XAMPP/xamppfiles/htdocs/ihc/storage/app/public/products/
-gdown --folder https://drive.google.com/drive/folders/1tdD2d4DkMjoAwAGf8ZiMBqzveBp8Fpw0 
-mv "ibiidi heating "/* . 
-rmdir "ibiidi heating "
+compress the folder then :
+scp -r /local/folder/path username@server_ip:/remote/project/folder/path/storage/app/public/products/
 
 
-This is a Laravel-based application for managing international health care products with multi-language support, product variants, and comprehensive categorization.
+### Run Project 
+pm2 start artisan \
+  --name laravel \
+  --interpreter php \
+  --cwd /path/to/project/folder/YOUR_LARAVEL_PROJECT \
+  -- serve --host=0.0.0.0 --port=8000
 
-### Database Setup
+pm2 status
+pm2 logs laravel
 
-The application uses a complex database schema with product management, translations, and tagging systems.
-
-#### Automatic Database Creation
-The application will **automatically create the database** if it doesn't exist when the application starts (in local/development environments). This includes:
-- Creating the database with proper charset/collation
-- Running all migrations
-- Seeding essential lookup tables (languages, currencies)
-
-#### Manual Database Setup
-For manual control or production deployments:
-
-```bash
-# Set up fresh database (drops all tables and recreates them)
-php artisan ihc:setup-fresh-database
-
-# Or set up fresh database with seeders
-php artisan ihc:setup-fresh-database --seed
-```
-
-This command will:
-- Create the database if it doesn't exist
-- Drop all existing IHC-related tables
-- Run all migrations to recreate the current schema
-- Optionally run seeders to populate initial data
-
-### Key Features
-
-- **Multi-language Product Management**: Products with translations in multiple languages
-- **Product Variants**: Support for product items/variants with different attributes
-- **Advanced Tagging**: Separate tags for products and product items
-- **Category Management**: Hierarchical category system with translations
-- **Excel Import**: Bulk product import from Excel files
-- **Image Management**: Product and product item image handling
-- **API-First**: RESTful API endpoints for all operations
-
-### Database Schema Overview
-
-- **Products**: Main products with translations (`product`, `product_translation`)
-- **Product Items**: Variants/sizes/colors (`product_item`, `product_item_translation`)
-- **Attributes**: Product specifications (`product_attribute_value`, `lkp_attribute`)
-- **Tags**: Product tags (`product_tag`, `lkp_tag`) and item tags (`product_item_tag`, `lkp_item_tag`)
-- **Categories**: Product categorization (`product_category`, `lkp_category`)
-- **Relationships**: Product relationships (`product_related`)
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

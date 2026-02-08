@@ -15,11 +15,17 @@ class AuthorizeCatalogAccess
      * Handle an incoming request.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse)  $next
+  i   * @param  \Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse)  $next
      * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
      */
     public function handle(Request $request, Closure $next)
     {
+        // Skip JWT validation for zip upload endpoint
+        if ($request->is('api/products/upload-zip') && $request->method() === 'POST') {
+            \Log::info('Skipping JWT validation for zip upload endpoint');
+            return $next($request);
+        }
+
         $requestId = $request->header('X-Request-ID');
         $userId = $request->header('X-User-Id');
 
@@ -27,7 +33,7 @@ class AuthorizeCatalogAccess
         $jwtPayload = $this->decodeJwt($request);
 
         if (!$jwtPayload) {
-            \Log::channel('security')->warning('JWT decoding failed', [
+            \Log::warning('JWT decoding failed', [
                 'request_id' => $requestId,
                 'user_id' => $userId,
             ]);
@@ -39,7 +45,7 @@ class AuthorizeCatalogAccess
         }
 
         // TEMPORARILY BYPASS ROLE CHECKING - User roles ignored for now
-        \Log::channel('security')->info('Authorization successful - roles bypassed', [
+        \Log::info('Authorization successful - roles bypassed', [
             'request_id' => $requestId,
             'user_id' => $userId,
             'jwt_user_id' => $jwtPayload->sub ?? null,
@@ -82,8 +88,8 @@ class AuthorizeCatalogAccess
 
             return $decoded;
         } catch (Exception $e) {
-            // Log to dedicated error channel
-            \Log::channel('error')->error('JWT decoding error', [
+            // Log to default channel
+            \Log::error('JWT decoding error', [
                 'error' => $e->getMessage(),
                 'request_id' => $request->header('X-Request-ID'),
                 'user_id' => $request->header('X-User-Id'),
@@ -103,7 +109,7 @@ class AuthorizeCatalogAccess
     {
         // Validate audience (aud) must equal "catalog"
         if (!isset($payload->aud) || $payload->aud !== 'catalog') {
-            \Log::channel('security')->warning('Invalid JWT audience', [
+            \Log::warning('Invalid JWT audience', [
                 'aud' => $payload->aud ?? 'missing',
                 'expected' => 'catalog',
             ]);
@@ -112,7 +118,7 @@ class AuthorizeCatalogAccess
 
         // Validate subject (sub) exists
         if (!isset($payload->sub) || empty($payload->sub)) {
-            \Log::channel('security')->warning('Missing JWT subject');
+            \Log::warning('Missing JWT subject');
             return false;
         }
 

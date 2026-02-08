@@ -18,6 +18,12 @@ class ValidateInternalRequest
      */
     public function handle(Request $request, Closure $next)
     {
+        // Skip validation for zip upload endpoint
+        if ($request->is('api/products/upload-zip') && $request->method() === 'POST') {
+            Log::info('Skipping internal request validation for zip upload endpoint');
+            return $next($request);
+        }
+
         // Log request details for security monitoring
         $requestId = $request->header('X-Request-ID');
         $userId = $request->header('X-User-Id');

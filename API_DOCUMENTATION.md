@@ -637,6 +637,167 @@ curl -X POST http://127.0.0.1:8000/api/products/WHPL-180-120/images \
 
 ---
 
+## 9. Upload Zip File with Product Images
+
+**Endpoint:** `POST /products/upload-zip`  
+**Purpose:** Upload and extract zip file containing product images for multiple products and variants  
+**Content-Type:** `multipart/form-data`
+
+**Request Body (Form Data):**
+- `zip_file` (file, required): Zip file containing product images (max 50MB)
+
+
+Example : curl -X POST http://127.0.0.1:8000/api/products/upload-zip -F "zip_file=@Archive.zip" -H "Accept: application/json"
+
+**Zip File Structure Requirements:**
+The zip file can contain files in any structure, as all image files will be extracted directly to the products directory. The system will automatically organize files based on their naming convention:
+
+**File Naming Convention:**
+- **Main product images:** `{product_code}_Main.jpg` or `{product_code}_main.jpg` or `{product_code}_n.jpg` (where n is a number)
+- **Variant images:** `{variant_code}_Main.jpg` or `{variant_code}_main.jpg` or `{variant_code}_n.jpg` (where n is a number)
+
+**Example Zip File Contents:**
+```
+Archive.zip
+├── product123_Main.jpg
+├── product123_1.jpg
+├── variant456_Main.jpg
+├── variant456_1.jpg
+├── variant789_Main.jpg
+└── some_other_folder/
+    ├── product999_Main.jpg
+    └── variant111_Main.jpg
+```
+
+**After Extraction (in `/storage/app/public/products/`):**
+```
+products/
+├── product123/
+│   ├── product123_Main.jpg
+│   └── product123_1.jpg
+├── product999/
+│   └── product999_Main.jpg
+└── variant456/
+    ├── variant456_Main.jpg
+    └── variant456_1.jpg
+└── variant789/
+    └── variant789_Main.jpg
+└── variant111/
+    └── variant111_Main.jpg
+```
+
+**Naming Conventions:**
+- **Main product images:** `{product_code}_Main.ext` or `{product_code}_n.ext` (where n is a number) - **Note: `Main` is capitalized**
+- **Variant images:** `{sku}_Main.ext` or `{sku}_n.ext` (where n is a number) - **Note: `Main` is capitalized**
+- **Supported formats:** jpg, jpeg, png, gif, webp
+
+**Example curl:**
+```bash
+curl -X POST http://127.0.0.1:8000/api/products/upload-zip \
+  -F "zip_file=@product_images.zip"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Zip file processed successfully",
+  "data": {
+    "processed_products": [
+      {
+        "product_code": "WHPL",
+        "main_images": [
+          {
+            "filename": "WHPL_main.jpg",
+            "path": "/storage/products/WHPL/WHPL_main.jpg",
+            "url": "http://127.0.0.1:8000/storage/products/WHPL/WHPL_main.jpg"
+          },
+          {
+            "filename": "WHPL_1.jpg",
+            "path": "/storage/products/WHPL/WHPL_1.jpg",
+            "url": "http://127.0.0.1:8000/storage/products/WHPL/WHPL_1.jpg"
+          }
+        ],
+        "variant_images": [
+          {
+            "variant_code": "WHPL-180-120",
+            "images": [
+              {
+                "filename": "WHPL-180-120_main.jpg",
+                "path": "/storage/products/WHPL/variant/WHPL-180-120/WHPL-180-120_main.jpg",
+                "url": "http://127.0.0.1:8000/storage/products/WHPL/variant/WHPL-180-120/WHPL-180-120_main.jpg"
+              }
+            ],
+            "errors": []
+          }
+        ],
+        "errors": []
+      },
+      {
+        "product_code": "ABC123",
+        "main_images": [
+          {
+            "filename": "ABC123_main.jpg",
+            "path": "/storage/products/ABC123/ABC123_main.jpg",
+            "url": "http://127.0.0.1:8000/storage/products/ABC123/ABC123_main.jpg"
+          }
+        ],
+        "variant_images": [],
+        "errors": []
+      }
+    ],
+    "total_errors": 0,
+    "errors": []
+  }
+}
+```
+
+**Response Fields:**
+- `processed_products` (array): Array of processed product objects
+  - `product_code` (string): Product code
+  - `main_images` (array): Successfully processed main product images
+  - `variant_images` (array): Successfully processed variant images
+  - `errors` (array): Validation or processing errors for this product
+- `total_errors` (integer): Total number of errors across all products
+- `errors` (array): Global errors that affected the entire zip processing
+
+**Error Response (422):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "zip_file": ["The zip file must be a valid zip archive."]
+  }
+}
+```
+
+**Error Response (500):**
+```json
+{
+  "success": false,
+  "message": "Failed to process zip file",
+  "error": "Detailed error message"
+}
+```
+
+**Processing Features:**
+- **Multiple Products:** Supports zip files containing images for multiple products
+- **Validation:** Validates zip file structure and image naming conventions
+- **Error Handling:** Continues processing other products even if one fails
+- **Storage:** Automatically organizes images in proper directory structure
+- **Cleanup:** Removes temporary files after processing
+- **Naming Validation:** Enforces consistent naming conventions for easy identification
+
+**Notes:**
+- Zip file size limit: 50MB
+- Supports unlimited number of products per zip file
+- Each product directory can contain multiple variant directories
+- Images are stored in the same structure as single product uploads
+- Processing continues for remaining products even if validation fails for some
+
+---
+
 ## 9. Get Category Details
 
 **Endpoint:** `POST /categories/details`  

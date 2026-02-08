@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UploadImagesRequest;
+use App\Http\Requests\UploadZipRequest;
 use App\Services\ImageDownloadService;
+use App\Services\ZipExtractionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,7 +14,8 @@ use Illuminate\Support\Facades\Storage;
 class ImageController extends Controller
 {
     public function __construct(
-        private ImageDownloadService $imageDownloadService
+        private ImageDownloadService $imageDownloadService,
+        private ZipExtractionService $zipExtractionService
     ) {}
 
     /**
@@ -98,6 +101,40 @@ class ImageController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload images',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload and extract zip file containing product images
+     */
+    public function uploadZipFile(UploadZipRequest $request): JsonResponse
+    {
+        try {
+            $zipFile = $request->file('zip_file');
+            
+            // Extract and process the zip file
+            $result = $this->zipExtractionService->extractZipFile($zipFile);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to process zip file',
+                    'error' => $result['error']
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Zip file processed successfully',
+                'data' => $result['data']
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload zip file',
                 'error' => $e->getMessage()
             ], 500);
         }

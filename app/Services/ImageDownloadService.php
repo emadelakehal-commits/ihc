@@ -29,8 +29,8 @@ class ImageDownloadService
 
             foreach ($files as $file) {
                 $filename = pathinfo($file, PATHINFO_FILENAME);
-                // Check if filename matches pattern: productcode_main or productcode_number
-                if (preg_match('/^' . preg_quote($productCode, '/') . '(_main|_\\d+)?$/', $filename)) {
+                // Check if filename matches pattern: productcode_Main or productcode_number
+                if (preg_match('/^' . preg_quote($productCode, '/') . '(_Main|_\\d+)?$/i', $filename)) {
                     $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                     if (in_array($extension, $imageExtensions)) {
                         $images[] = asset("storage/{$file}");
@@ -56,8 +56,8 @@ class ImageDownloadService
 
             foreach ($files as $file) {
                 $filename = pathinfo($file, PATHINFO_FILENAME);
-                // Check if filename matches pattern: isku_main or isku_number
-                if (preg_match('/^' . preg_quote($isku, '/') . '(_main|_\\d+)?$/', $filename)) {
+                // Check if filename matches pattern: isku_Main or isku_number
+                if (preg_match('/^' . preg_quote($isku, '/') . '(_Main|_\\d+)?$/i', $filename)) {
                     $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                     if (in_array($extension, $imageExtensions)) {
                         $images[] = asset("storage/{$file}");
