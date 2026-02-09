@@ -27,7 +27,7 @@ Before setting up this project, ensure you have the following installed:
 
 #### PM2 Requirements (for Production Deployments)
 **Node.js and npm are required for PM2:**
-- **Node.js 18+** (same version as Development Tools requirement)
+- **Node.js v22.21.1**, **npm 10.9.4**(same version as Development Tools requirement)
 - **npm** (bundled with Node.js)
 - **PM2** (installed via: `npm install -g pm2`)
 
@@ -62,7 +62,7 @@ max_execution_time = 300
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
+   git clone git@github.com:emadelakehal-commits/ihc.git
    cd ihc
    ```
 

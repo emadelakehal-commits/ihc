@@ -17,6 +17,7 @@ class ImageService
     public function getProductItemImages(string $productCode, string $isku): array
     {
         $imageUrls = [];
+        
         $productItemDir = "products/{$productCode}/variant/{$isku}";
         
         if (Storage::disk('public')->exists($productItemDir)) {
@@ -236,5 +237,164 @@ class ImageService
     public function getProductItemImageUrlForProductItems(string $productCode, string $isku): ?string
     {
         return $this->getSingleProductItemImageUrl($productCode, $isku);
+    }
+
+    /**
+     * Upload images for a product
+     */
+    public function uploadProductImages(string $productCode, array $images): array
+    {
+        $this->validateProductExists($productCode);
+        $this->validateImageFiles($images);
+
+        $uploadedImages = [];
+
+        foreach ($images as $index => $image) {
+            $suffix = $index === 0 ? 'Main' : '_' . $index;
+            $filename = $productCode . $suffix . '.' . $image->getClientOriginalExtension();
+            $path = $image->storeAs($productCode, $filename, 'public');
+            
+            $uploadedImages[] = [
+                'filename' => $filename,
+                'url' => asset("storage/{$path}"),
+                'path' => $path,
+            ];
+        }
+
+        return $uploadedImages;
+    }
+
+    /**
+     * Upload images for a product item
+     */
+    public function uploadProductItemImages(string $productItemCode, array $images): array
+    {
+        // Find the product code for this item
+        $productCode = $this->getProductCodeForItem($productItemCode);
+        if (!$productCode) {
+            throw new \Exception("Product item {$productItemCode} not found");
+        }
+
+        $this->validateImageFiles($images);
+
+        $uploadedImages = [];
+
+        foreach ($images as $index => $image) {
+            $suffix = $index === 0 ? 'Main' : '_' . $index;
+            $filename = $productItemCode . $suffix . '.' . $image->getClientOriginalExtension();
+            $path = $image->storeAs("{$productCode}/variant/{$productItemCode}", $filename, 'public');
+            
+            $uploadedImages[] = [
+                'filename' => $filename,
+                'url' => asset("storage/{$path}"),
+                'path' => $path,
+            ];
+        }
+
+        return $uploadedImages;
+    }
+
+    /**
+     * Download and organize product images from Google Drive
+     */
+    public function downloadProductImages(string $driveUrl): array
+    {
+        // Create temporary directory for download
+        $tempDir = '/tmp/drive_images_' . time();
+        if (!mkdir($tempDir, 0755, true)) {
+            throw new \Exception('Failed to create temporary directory');
+        }
+
+        // Execute gdown command to download the folder
+        $command = "gdown --folder \"$driveUrl\" -O \"$tempDir\" 2>&1";
+        $output = shell_exec($command);
+
+        if ($output === null) {
+            throw new \Exception('Failed to execute download command');
+        }
+
+        // Process downloaded files (simplified version)
+        $processedProducts = 0;
+        $processedImages = 0;
+
+        // Process each product directory
+        $productDirs = glob("$tempDir/*", GLOB_ONLYDIR);
+        foreach ($productDirs as $productDir) {
+            $productCode = basename($productDir);
+
+            // Create product directory in storage
+            Storage::disk('public')->makeDirectory("products/$productCode");
+
+            // Process product images
+            $productFiles = glob("$productDir/*.jpg") + glob("$productDir/*.jpeg") + 
+                           glob("$productDir/*.png") + glob("$productDir/*.gif");
+            
+            foreach ($productFiles as $file) {
+                $filename = basename($file);
+                $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+                // Rename file to match expected pattern if needed
+                if (!preg_match('/^' . preg_quote($productCode, '/') . '(_Main|_\\d+)?\.' . $extension . '$/', $filename)) {
+                    if (strpos($filename, '_Main') !== false) {
+                        $newFilename = $productCode . '_Main.' . $extension;
+                    } else {
+                        $newFilename = $productCode . '_' . $processedImages . '.' . $extension;
+                    }
+                    $newPath = dirname($file) . '/' . $newFilename;
+                    rename($file, $newPath);
+                    $file = $newPath;
+                    $filename = $newFilename;
+                }
+
+                // Copy to storage
+                $storagePath = "products/$productCode/$filename";
+                if (Storage::disk('public')->put($storagePath, file_get_contents($file))) {
+                    $processedImages++;
+                }
+            }
+
+            $processedProducts++;
+        }
+
+        // Clean up temporary directory
+        shell_exec("rm -rf \"$tempDir\"");
+
+        return [
+            'products_processed' => $processedProducts,
+            'images_processed' => $processedImages,
+            'drive_url' => $driveUrl
+        ];
+    }
+
+    /**
+     * Get product code for a product item
+     */
+    private function getProductCodeForItem(string $productItemCode): ?string
+    {
+        return \DB::table('product_item')
+            ->where('product_item_code', $productItemCode)
+            ->value('product_code');
+    }
+
+    /**
+     * Validate that product exists
+     */
+    private function validateProductExists(string $productCode): void
+    {
+        if (!Product::where('product_code', $productCode)->exists()) {
+            throw new \Exception("Product {$productCode} not found");
+        }
+    }
+
+    /**
+     * Validate image files
+     */
+    private function validateImageFiles(array $images): void
+    {
+        foreach ($images as $image) {
+            if (!$image->isValid()) {
+                throw new \Exception("Invalid image file provided");
+            }
+        }
     }
 }
