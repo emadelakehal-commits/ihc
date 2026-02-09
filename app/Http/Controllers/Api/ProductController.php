@@ -975,7 +975,8 @@ class ProductController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $result
+                'tag_name' => $result['tag_name'],
+                'data' => $result['data']
             ], 200);
 
         } catch (\Exception $e) {

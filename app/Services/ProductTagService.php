@@ -7,9 +7,23 @@ use App\Models\ProductItem;
 use App\Models\ProductItemTranslation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\ImageService;
 
 class ProductTagService
 {
+    /**
+     * @var ImageService
+     */
+    private $imageService;
+
+    /**
+     * ProductTagService constructor.
+     */
+    public function __construct()
+    {
+        $this->imageService = app(ImageService::class);
+    }
+
     /**
      * Get entities (products and product items) by tag code.
      */
@@ -163,22 +177,18 @@ class ProductTagService
     }
 
     /**
-     * Get product image URL for categories (placeholder).
+     * Get product image URL for categories.
      */
     private function getProductImageUrlForCategories(string $productCode): ?string
     {
-        // This should be implemented to use the actual ImageService
-        // For now, returning null as placeholder
-        return null;
+        return $this->imageService->getProductImageUrlForTag($productCode);
     }
 
     /**
-     * Get product item image URL for categories (placeholder).
+     * Get product item image URL for categories.
      */
     private function getProductItemImageUrlForCategories(string $productCode, string $isku): ?string
     {
-        // This should be implemented to use the actual ImageService
-        // For now, returning null as placeholder
-        return null;
+        return $this->imageService->getProductItemImageUrlForTag($productCode, $isku);
     }
 }
