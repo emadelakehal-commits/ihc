@@ -168,29 +168,14 @@ class CategoryService
     {
         $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
 
-        // Banner images are named after routes: {language}-{route-slug}
-        $routeBannerMap = [
-            'SPA_ZONE_0' => 'spa-and-outdoor',
-            'OUTDOOR' => 'spa-and-outdoor',
-        ];
+        // Category images are stored as: categories/{Category_code}.{extension}
+        // No language prefix as specified
+        $imagePath = "categories/{$categoryCode}";
 
-        $imageName = $categoryCode;
-        if (isset($routeBannerMap[$categoryCode])) {
-            $imageName = $language . '-' . $routeBannerMap[$categoryCode];
-        }
-
-        // Try different paths and extensions
-        $possiblePaths = [
-            "images/{$imageName}",
-            "categories/{$categoryCode}",
-        ];
-
-        foreach ($possiblePaths as $basePath) {
-            foreach ($imageExtensions as $ext) {
-                $imagePath = "{$basePath}.{$ext}";
-                if (Storage::disk('public')->exists($imagePath)) {
-                    return asset("storage/{$imagePath}");
-                }
+        foreach ($imageExtensions as $ext) {
+            $fullImagePath = "{$imagePath}.{$ext}";
+            if (Storage::disk('public')->exists($fullImagePath)) {
+                return asset("storage/{$fullImagePath}");
             }
         }
 
