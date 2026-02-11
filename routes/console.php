@@ -19,3 +19,7 @@ Artisan::command('ihc:setup-fresh-database', function () {
 Artisan::command('storage:ensure-directories', function () {
     $this->call(\App\Console\Commands\EnsureStorageDirectories::class);
 })->purpose('Ensure all required storage directories exist');
+
+Artisan::command('images:optimize', function () {
+    $this->call(\App\Console\Commands\OptimizeImages::class);
+})->purpose('Optimize all product and category images for faster loading');

@@ -114,6 +114,37 @@ Incase you don't have the product images on your local machine download them fro
 compress the folder then :
 scp -r /local/folder/path username@server_ip:/remote/project/folder/path/storage/app/public/products/
 
+### Optimize Images for Faster Loading
+After uploading images, optimize them for better performance and faster loading:
+
+```bash
+# Basic optimization with default settings (80% quality, max 1200x1200px)
+php artisan images:optimize
+
+# Custom quality and dimensions
+php artisan images:optimize --quality=70 --max-width=1000 --max-height=1000
+
+# Preview optimization without making changes
+php artisan images:optimize --dry-run
+
+# Force optimization of all images
+php artisan images:optimize --force
+```
+
+**Benefits:**
+- **Dramatic file size reduction** (up to 99% reduction)
+- **Faster page loading** and better user experience
+- **Reduced bandwidth usage** and storage requirements
+- **Automatic image resizing** for optimal dimensions
+- **Smart processing** that skips already optimized images
+
+**Available Options:**
+- `--quality=80`: JPEG quality percentage (1-100)
+- `--max-width=1200`: Maximum width in pixels
+- `--max-height=1200`: Maximum height in pixels
+- `--dry-run`: Preview changes without making modifications
+- `--force`: Force optimization even for already optimized images
+
 
 ### Run Project 
 pm2 start artisan \
