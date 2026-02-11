@@ -156,3 +156,81 @@ pm2 start artisan \
 pm2 status
 pm2 logs laravel
 
+### Database Management
+
+This section explains how to add new database tables or make database changes in this Laravel project.
+
+#### Creating New Database Tables
+
+1. **Create a New Migration**
+   ```bash
+   php artisan make:migration create_table_name_table
+   ```
+   or for specific changes:
+   ```bash
+   php artisan make:migration add_column_to_table_name_table
+   ```
+
+2. **Edit the Migration File**
+   - Navigate to `database/migrations/` and edit the generated migration file
+   - Implement the `up()` method with your table/schema changes
+   - Implement the `down()` method for rollback functionality
+
+3. **Run the Migration**
+   ```bash
+   php artisan migrate
+   ```
+
+#### Creating Models and Seeders
+
+4. **Create Model (if needed)**
+   ```bash
+   php artisan make:model ModelName
+   ```
+   - Place in `app/Models/` directory
+   - Configure relationships, casts, and other model properties
+
+5. **Create Database Seeder (if needed)**
+   ```bash
+   php artisan make:seeder TableNameSeeder
+   ```
+   - Add to `database/seeders/`
+   - Update `DatabaseSeeder.php` to include the new seeder
+
+#### Updating Application Logic
+
+6. **Update Repositories/Services (if needed)**
+   - Add methods to existing repositories in `app/Repositories/`
+   - Update service classes in `app/Services/` if business logic changes
+
+7. **Update API Endpoints (if needed)**
+   - Modify controllers in `app/Http/Controllers/Api/`
+   - Update request validation in `app/Http/Requests/`
+   - Update API documentation in `API_DOCUMENTATION.md`
+
+#### Testing and Deployment
+
+8. **Test the Changes**
+   ```bash
+   php artisan migrate:fresh --seed  # Fresh database with seeders
+   php artisan test                   # Run tests
+   ```
+
+9. **Production Deployment**
+   ```bash
+   php artisan migrate --force      # Apply migrations in production
+   php artisan db:seed --force      # Seed production data if needed
+   ```
+
+#### Important Notes
+
+- **Migration Naming**: Use descriptive names like `create_product_reviews_table` or `add_status_to_orders_table`
+- **Foreign Keys**: Always define proper foreign key constraints with cascade options
+- **Indexing**: Add indexes for frequently queried columns
+- **Seeding**: Use factories in `database/factories/` for test data generation
+- **Backup**: Always backup production databases before running migrations
+- **Testing**: Test migrations on a copy of production data first
+- **Rollback**: Ensure `down()` methods work correctly for easy rollback
+
+The project follows standard Laravel conventions, so these steps will integrate seamlessly with the existing codebase structure.
+
